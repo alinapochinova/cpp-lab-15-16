@@ -1,5 +1,7 @@
 #include <iostream>
 #include <fstream>
+#include <thread>
+#include <vector>
 
 using namespace std;
 template <typename T>
@@ -80,13 +82,19 @@ public:
             return Matrix();
         }
         Matrix result(lines, other.columns, true);
+        vector<thread> threads;
         for (int i = 0; i < lines; i++) {
-            for (int j = 0; j < other.columns; j++) {
-                result.matrix[i][j] = 0;
-                for (int k = 0; k < columns; k++) {
-                    result.matrix[i][j] += matrix[i][k] * other.matrix[k][j];
+            threads.push_back(thread([this, &result, &other, i]() {
+                for (int j = 0; j < other.columns; ++j) {
+                    result.matrix[i][j] = 0;
+                    for (int k = 0; k < columns; ++k) {
+                        result.matrix[i][j] += matrix[i][k] * other.matrix[k][j];
+                    }
                 }
-            }
+                }));
+        }
+        for (thread& thread : threads){
+            thread.join();
         }
         return result;
     }
@@ -94,10 +102,16 @@ public:
     Matrix operator * (double c) const { //перегрузка * для матрицы и скаляра
 
         Matrix result(lines, columns, true);
+        vector<thread> threads;
         for (int i = 0; i < lines; i++) {
-            for (int j = 0; j < columns; j++) {
-                result.matrix[i][j] = matrix[i][j] * c;
-            }
+            threads.push_back(thread([this, &result, c, i]() {
+                for (int j = 0; j < columns; j++) {
+                    result.matrix[i][j] = matrix[i][j] * c;
+                }
+            }));
+        }
+        for (thread& thread : threads) {
+            thread.join();
         }
         return result;
     }
@@ -109,15 +123,20 @@ public:
             cout << "The number of columns and the number of lines in matrix1 and matrix2 should be equal\n";
             return Matrix();
         }
+        vector<thread> threads;
         Matrix result(lines, columns, true);
         for (int i = 0; i < lines; i++) {
-            for (int j = 0; j < columns; j++) {
-                result.matrix[i][j] = matrix[i][j] + other.matrix[i][j];
-            }
+            threads.push_back(thread([this, &result, &other, i]() {
+                for (int j = 0; j < columns; j++) {
+                    result.matrix[i][j] = matrix[i][j] + other.matrix[i][j];
+                }
+                }));
+        }
+        for (thread& thread : threads){
+            thread.join();
         }
         return result;
     }
-
 
     Matrix operator - (const Matrix& other) { //перегрузка -
 
@@ -127,10 +146,16 @@ public:
             return Matrix();
         }
         Matrix result(lines, columns, true);
+        vector<thread> threads;
         for (int i = 0; i < lines; i++) {
-            for (int j = 0; j < columns; j++) {
-                result.matrix[i][j] = matrix[i][j] - other.matrix[i][j];
-            }
+            threads.push_back(thread([this, &result, &other, i](){
+                for (int j = 0; j < columns; j++) {
+                    result.matrix[i][j] = matrix[i][j] - other.matrix[i][j];
+                }
+            }));
+        }
+        for (thread& thread : threads) {
+            thread.join();
         }
         return result;
     }
@@ -202,8 +227,6 @@ public:
         return *this;
     }
 
-
-
     Matrix elementr1(int index1, int index2) { //элементарное преобразование над строками первого типа
 
         Matrix result(*this);
@@ -269,37 +292,49 @@ public:
             return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
         }
         double det = 0;
-        Matrix minor(lines - 1, columns - 1, true);
+        vector<thread> threads;
         for (int j = 0; j < columns; j++) {
-            for (int i = 1; i < lines; i++) {
-                int k = 0;
-                for (int l = 0; l < columns; l++) {
-                    if (l != j) {
-                        minor.matrix[i - 1][k] = matrix[i][l];
-                        k++;
+            threads.push_back(thread([&, j]() {
+                Matrix minor(lines - 1, columns - 1, true);
+                for (int i = 1; i < lines; i++) {
+                    int k = 0;
+                    for (int l = 0; l < columns; l++) {
+                        if (l != j) {
+                            minor.matrix[i - 1][k] = matrix[i][l];
+                            k++;
+                        }
                     }
                 }
-            }
-            det += pow(-1, j) * matrix[0][j] * minor.determinant();
+                det += pow(-1, j) * matrix[0][j] * minor.determinant();
+            }));
+        }
+        for (thread& thread : threads) {
+            thread.join();
         }
         return det;
     }
 
     double AlgDop(int x, int y) {
         Matrix tmp(lines - 1, columns - 1, true);
+        vector<thread> threads;
         int n, m;
         n = 0;
         for (int l = 0; l < lines - 1; l++) {
-            if (l == x - 1) {
-                n = 1;
-            }
-            m = 0;
-            for (int t = 0; t < lines - 1; t++) {
-                if (t == y - 1) {
-                    m = 1;
+            threads.push_back(thread([&, l]() {
+                if (l == x - 1) {
+                    n = 1;
                 }
-                tmp.matrix[l][t] = matrix[l + n][t + m];
-            }
+                m = 0;
+                for (int t = 0; t < lines - 1; t++) {
+                    if (t == y - 1) {
+                        m = 1;
+                    }
+                    tmp.matrix[l][t] = matrix[l + n][t + m];
+                }
+            }));  
+        }
+        for (thread& thread : threads) {
+            thread.join();
         }
         int num;
         if ((x + y) % 2 == 0) {
@@ -319,37 +354,41 @@ public:
             }
         }
         Matrix result(lines, columns, true);
+        vector<thread> threads;
+
         if (lines != columns) {
             cout << "The matrix is not square" << endl;
         }
         else {
             for (int i = 0; i < lines; i++) {
-                for (int j = 0; j < columns; j++) {
-                    result.matrix[i][j] = tmp.AlgDop(i + 1, j + 1);
-                }
+                threads.push_back(thread([&, i]() {
+                    for (int j = 0; j < columns; j++) {
+                        result.matrix[i][j] = tmp.AlgDop(i + 1, j + 1);
+                    }
+                }));   
             }
+        }
+        for (thread& thread : threads) {
+            thread.join();
         }
         return result;
     }
 
-    void transposition() {//транспонированиe матрицы
-        T** result = new T * [columns];
-        for (int i = 0; i < columns; i++) {
-            result[i] = new T[lines];
-            for (int j = 0; j < lines; j++) {
-                result[i][j] = matrix[j][i];
-            }
+    Matrix transposition() {//транспонированиe матрицы
+        Matrix result(columns, lines, true);
+        vector<thread> threads;
+        for (int i = 0; i < columns; ++i)
+        {
+            threads.push_back(thread([&, i](){
+                for (int j = 0; j < lines; ++j) {
+                    result.matrix[i][j] = matrix[j][i];
+                }
+            }));
         }
-        if (matrix != nullptr) {
-            for (int i = 0; i < lines; i++) {
-                delete[] matrix[i];
-            }
-            delete[] matrix;
+        for (thread& thread : threads){
+            thread.join();
         }
-        int l = lines;
-        lines = columns;
-        columns = l;
-        matrix = result;
+        return result;
     }
 
     Matrix operator !() {//перегрузка оператра ! для вычисления обраной матрицы
@@ -420,15 +459,17 @@ public:
 
 int main()
 {
-    Matrix<double> matrix1("input.txt");
+    Matrix<double> matrix1("/Users/Алина/source/repos/cpp-lab-15-16/cpp-lab-15-16/TextFile3.txt");
     cout << "Enter the number of lines and columns for matrix2:" << endl;
     int lines, columns;
     cin >> lines >> columns;
     cout << "Enter the numbers you want to put in the matrix2:" << endl;
     Matrix<double> matrix2(lines, columns);
-    ofstream file("output.txt");
+    ofstream file("/Users/Алина/source/repos/cpp-lab-15-16/cpp-lab-15-16/TextFile4.txt");
     file << matrix1 << endl << matrix2;
     file.close();
+    cout << matrix1;
+    cout << matrix2;
 
     //проивзведение двух матриц
     cout << "The product of two matrices:" << endl;
@@ -446,7 +487,7 @@ int main()
     cout << (matrix1 * c1) << endl;
     cout << "The product of the matrix2 and the scalar2:" << endl;
     cout << (matrix2 * c2) << endl;
-
+    
     //сумма двух матриц
     cout << "The sum of two matrices:" << endl;
     cout << (matrix1 + matrix2) << endl;
@@ -454,7 +495,7 @@ int main()
     //разность двух матриц
     cout << "The difference of two matrices:" << endl;
     cout << (matrix1 - matrix2) << endl;
-
+    /*
     //сравнение двух матриц
     cout << "Comparison of two matrices for equality:" << endl;
     cout << (matrix1 == matrix2) << endl;
@@ -502,6 +543,7 @@ int main()
     cin >> m2;
     cout << "Matrix to one of the rows of which another multiplied by a number was added:" << endl;
     cout << matrix1.elementr3(ind1, ind2, m2) << endl;
+    */
 
     //нахождение определителя матрицы
     cout << "The determinant of the matrix1:" << endl;
@@ -525,16 +567,15 @@ int main()
         cout << error_message << endl;
     }
 
-
+    /*
     //перегруженный оператор присваивания
     matrix1 = matrix2;
     cout << "New value of matrix1:" << endl;
     cout << matrix1;
 
-
     cout << "Zero Matrix:" << endl;
     cout << Matrix<int>::ZeroMatrix(3, 4);
     cout << "Identity Matrix:" << endl;
-    cout << Matrix<int>::IdentityMatrix(3, 3);
+    cout << Matrix<int>::IdentityMatrix(3, 3);*/
     return 0;
 }
