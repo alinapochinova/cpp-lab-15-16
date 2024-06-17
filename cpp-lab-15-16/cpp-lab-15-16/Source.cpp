@@ -2,11 +2,16 @@
 #include <fstream>
 #include <thread>
 #include <vector>
+#include <random>
+#include <cmath>
+#include <chrono>
+#include <future>
 
 using namespace std;
+using namespace chrono;
 template <typename T>
 class Matrix {
-private:
+public:
 
     int columns;
     int lines;
@@ -25,7 +30,6 @@ private:
             }
         }
     }
-public:
 
     Matrix() {//конструктор по умолчанию (без параметров)
         lines = 0;
@@ -99,7 +103,36 @@ public:
         return result;
     }
 
-    Matrix operator * (double c) const { //перегрузка * для матрицы и скаляра
+    Matrix MultiplicationBlocksFutures(const Matrix& other, int blocks) const {
+
+        if (columns != other.lines)
+        {
+            cout << "The number of columns in matrix1 must be equal to the number of rows in matrix2\n";
+            return Matrix();
+        }
+        Matrix result(lines, other.columns, true);
+        vector<future<void>> futures;
+        for (int i = 0; i < lines; i += blocks) {
+            for (int j = 0; j < other.columns; j += blocks) {
+                futures.push_back(async(launch::async, [&, i, j]() {
+                        for (int ii = i; ii < min(i + blocks, lines); ii++) {
+                            for (int jj = j; jj < min(j + blocks, other.columns); jj++) {
+                                result.matrix[ii][jj] = 0;
+                                for (int k = 0; k < columns; k++) {
+                                    result.matrix[ii][jj] += matrix[ii][k] * other.matrix[k][jj];
+                                }
+                            }
+                        }
+                    }));
+            }
+        }
+        for (auto& future : futures) {
+            future.get();
+        }
+        return result;
+    }
+
+    Matrix operator * (T& c) const { //перегрузка * для матрицы и скаляра
 
         Matrix result(lines, columns, true);
         vector<thread> threads;
@@ -112,6 +145,27 @@ public:
         }
         for (thread& thread : threads) {
             thread.join();
+        }
+        return result;
+    }
+
+    Matrix ScalarMultiplicationBlocksFutures(const T& c, int blocks) const {
+
+        Matrix result(lines, columns, true);
+        vector<future<void>> futures;
+        for (int i = 0; i < lines; i += blocks) {
+            for (int j = 0; j < columns; j += blocks) {
+                futures.push_back(async(launch::async, [&, i, j]() {
+                        for (int ii = i; ii < min(i + blocks, lines); ii++) {
+                            for (int jj = j; jj < min(j + blocks, columns); jj++) {
+                                result.matrix[ii][jj] = matrix[ii][jj] * c;
+                            }
+                        }
+                    }));
+            }
+        }
+        for (auto& future : futures) {
+            future.get();
         }
         return result;
     }
@@ -138,6 +192,35 @@ public:
         return result;
     }
 
+    Matrix AdditionBlocksFutures(const Matrix& other, int blocks) const {
+
+        if (lines != other.lines || columns != other.columns)
+        {
+            cout << "The number of columns and the number of lines in matrix1 and matrix2 should be equal\n";
+            return Matrix();
+        }
+        vector<future<void>> futures;
+        Matrix result(lines, columns, true);
+        for (int i = 0; i < lines; i += blocks) { // Внешний цикл по i и внутренний цикл по j делят матрицы на блоки
+            for (int j = 0; j < columns; j += blocks) {
+                futures.push_back(async(launch::async, [&, i, j]() { //Внутри каждого блока запускается асинхронная задача 
+                        for (int ii = i; ii < min(i + blocks, lines); ii++) {
+                            for (int jj = j; jj < min(j + blocks, columns); jj++) {
+                                result.matrix[ii][jj] = matrix[ii][jj] + other.matrix[ii][jj];
+                            }
+                        }
+                    }));
+            }
+        }
+
+        /*После создания потоков в цикле ожидания основной поток дожидается завершения всех потоков.
+        Функция future.get() используется для получения результатов вычислений из потоков.*/
+        for (auto& future : futures) {
+            future.get();
+        }
+        return result;
+    }
+
     Matrix operator - (const Matrix& other) { //перегрузка -
 
         if (lines != other.lines || lines != other.lines)
@@ -156,6 +239,32 @@ public:
         }
         for (thread& thread : threads) {
             thread.join();
+        }
+        return result;
+    }
+
+    Matrix SubstractionBlocksFutures(const Matrix& other, int blocks) const {
+
+        if (lines != other.lines || lines != other.lines)
+        {
+            cout << "The number of columns and the number of lines in matrix1 and matrix2 should be equal\n";
+            return Matrix();
+        }
+        Matrix result(lines, columns, true);
+        vector<future<void>> futures;
+        for (int i = 0; i < lines; i += blocks) {
+            for (int j = 0; j < columns; j += blocks) {
+                futures.push_back(async(launch::async, [&, i, j]() {
+                        for (int ii = i; ii < min(i + blocks, lines); ii++) {
+                            for (int jj = j; jj < min(j + blocks, columns); jj++) {
+                                result.matrix[ii][jj] = matrix[ii][jj] - other.matrix[ii][jj];
+                            }
+                        }
+                    }));
+            }
+        }
+        for (auto& future : futures) {
+            future.get();
         }
         return result;
     }
@@ -314,11 +423,49 @@ public:
         return det;
     }
 
+    double DeterminantBlocksFutures(int blocks) {
+        if (lines != columns) {
+            cout << "Unable to calculate determinant" << endl;
+            return 0;
+        }
+        if (lines == 1) {
+            return matrix[0][0];
+        }
+        if (lines == 2) {
+            return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+        }
+        double det = 0;
+        vector<future<double>> futures;
+        for (int j = 0; j < columns; j += blocks) {
+            futures.push_back(async(launch::async, [&, j]() {
+                double blocksdet = 0;
+                for (int jj = j; jj < min(j + blocks, columns); jj++) {
+                    Matrix minor(lines - 1, columns - 1, true);
+                    for (int i = 1; i < columns; i++) {
+                        int k = 0;
+                        for (int l = 0; l < lines; l++) {
+                            if (l != jj) {
+                                minor.matrix[i - 1][k] = matrix[i][l];
+                                k++;
+                            }
+                        }
+                    }
+                    blocksdet += pow(-1, jj) * matrix[0][jj] * minor.DeterminantBlocksFutures(blocks); //Каждая задача вычисляет определитель для своего блока и добавляет результат в block_det.
+                }
+                return blocksdet;
+                }));
+        }
+        for (auto& future : futures) {
+            det += future.get();
+        }
+        return det;
+    }
+
     double AlgDop(int x, int y) {
         Matrix tmp(lines - 1, columns - 1, true);
-        vector<thread> threads;
         int n, m;
         n = 0;
+        vector<thread> threads;
         for (int l = 0; l < lines - 1; l++) {
             threads.push_back(thread([&, l]() {
                 if (l == x - 1) {
@@ -344,6 +491,39 @@ public:
             num = -1;
         }
         return num * tmp.determinant();
+    }
+
+    double AlgDopBlocksFutures(int x, int y, int blocks) {
+        Matrix tmp(lines - 1, columns - 1, true);
+        int n, m, sign;
+        n = 0;
+        vector<future<void>> futures;
+        for (int i = 0; i < lines - 1; i += blocks) {
+            futures.push_back(async(launch::async, [&, i]() {
+                    for (int k = i; k < min(i + blocks, lines - 1); k++) {
+                        if (k == x - 1) {
+                            n = 1;
+                        }
+                        m = 0;
+                        for (int j = 0; j < columns - 1; j++) {
+                            if (j == y - 1) {
+                                m = 1;
+                            }
+                            tmp.matrix[k - i][j] = matrix[k + n][j + m];
+                        }
+                    }
+                }));
+        }
+        for (auto& future : futures) {
+            future.wait();
+        }
+        if ((x + y) % 2 == 0) {
+            sign = 1;
+        }
+        else {
+            sign = -1;
+        }
+        return sign * tmp.DeterminantBlocksFutures(blocks);
     }
 
     Matrix AlgDopMatrix() {
@@ -374,11 +554,42 @@ public:
         return result;
     }
 
+    Matrix AlgDopMatrixBlocksFutures(int blocks) {
+        Matrix tmp(lines, columns, true);
+        for (int i = 0; i < lines; i++) {
+            for (int j = 0; j < columns; j++) {
+                tmp.matrix[i][j] = matrix[i][j];
+            }
+        }
+        Matrix result(lines, columns, true);
+        vector<future<void>> futures;
+
+        if (lines != columns) {
+            cout << "The matrix is not square" << endl;
+        }
+        else {
+            for (int i = 0; i < lines; i += blocks) {
+                for (int j = 0; j < columns; j += blocks) {
+                    futures.push_back(async(launch::async, [&, i, j]() {
+                        for (int ii = i; ii < min(i + blocks, lines); ii++) {
+                            for (int jj = j; jj < min(j + blocks, columns); jj++) {
+                                result.matrix[ii][jj] = tmp.AlgDopBlocksFutures(ii + 1, jj + 1, blocks);
+                            }
+                        }
+                        }));
+                }
+            }
+        }
+        for (auto& future : futures) {
+            future.get();
+        }
+        return result;
+    }
+
     Matrix transposition() {//транспонированиe матрицы
         Matrix result(columns, lines, true);
         vector<thread> threads;
-        for (int i = 0; i < columns; ++i)
-        {
+        for (int i = 0; i < columns; ++i) {
             threads.push_back(thread([&, i](){
                 for (int j = 0; j < lines; ++j) {
                     result.matrix[i][j] = matrix[j][i];
@@ -387,6 +598,26 @@ public:
         }
         for (thread& thread : threads){
             thread.join();
+        }
+        return result;
+    }
+
+    Matrix TranspositionBlocksFutures(int blocks) {
+        Matrix result(columns, lines, true);
+        vector<future<void>> futures;
+        for (int i = 0; i < lines; i += blocks) {
+            for (int j = 0; j < columns; j += blocks) {
+                futures.push_back(async(launch::async, [&, i, j]() {
+                    for (int ii = i; ii < min(i + blocks, lines); ii++) {
+                        for (int jj = j; jj < min(j + blocks, columns); jj++) {
+                            result.matrix[jj][ii] = matrix[ii][jj];
+                        }
+                    }
+                    }));
+            }
+        }
+        for (auto& future : futures) {
+            future.get();
         }
         return result;
     }
@@ -411,6 +642,30 @@ public:
                 tmp2.transposition();
                 Matrix tmp3 = tmp2 * (1 / det);
                 cout << "The inverse matrix:" << endl;
+                return tmp3;
+            }
+        }
+    }
+
+    Matrix InverseMatrixBlocksFututres(int blocks) {
+        Matrix tmp(lines, columns, true);
+        for (int i = 0; i < lines; i++) {
+            for (int j = 0; j < lines; j++) {
+                tmp.matrix[i][j] = matrix[i][j];
+            }
+        }
+        if (lines != columns) {
+            throw "The matrix is not square";
+        }
+        else {
+            double det = tmp.DeterminantBlocksFutures(blocks);
+            if (det == 0) {
+                throw "Zero determinant";
+            }
+            else {
+                Matrix tmp2 = tmp.AlgDopMatrixBlocksFutures(blocks);
+                tmp2.TranspositionBlocksFutures(blocks);
+                Matrix tmp3 = tmp2.ScalarMultiplicationBlocksFutures(1 / det, blocks);
                 return tmp3;
             }
         }
@@ -457,125 +712,227 @@ public:
     }
 };
 
-int main()
-{
-    Matrix<double> matrix1("/Users/Алина/source/repos/cpp-lab-15-16/cpp-lab-15-16/TextFile3.txt");
-    cout << "Enter the number of lines and columns for matrix2:" << endl;
-    int lines, columns;
-    cin >> lines >> columns;
-    cout << "Enter the numbers you want to put in the matrix2:" << endl;
-    Matrix<double> matrix2(lines, columns);
-    ofstream file("/Users/Алина/source/repos/cpp-lab-15-16/cpp-lab-15-16/TextFile4.txt");
-    file << matrix1 << endl << matrix2;
-    file.close();
-    cout << matrix1;
-    cout << matrix2;
+int main() {
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_int_distribution<int> dist(0, 100);
+    //16.1
+    int blocks = 1;
+        for (int n = 0; n <= 2000; n += 50)
+        {
+            Matrix<double> matrix1(n,n), matrix2(n,n);
 
-    //проивзведение двух матриц
-    cout << "The product of two matrices:" << endl;
-    cout << (matrix1 * matrix2) << endl;
+            for (int i = 0; i < n; ++i) {
+                for (int j = 0; j < n; ++j) {
+                    matrix1.matrix[i][j] = dist(gen);
+                }
+            }
 
-    cout << "Enter a scalar to multiply by the matrix1:" << endl;
-    double c1;
-    cin >> c1;
-    cout << "Enter a scalar to multiply by the matrix2:" << endl;
-    double c2;
-    cin >> c2;
+            for (int i = 0; i < n; ++i) {
+                for (int j = 0; j < n; ++j) {
+                    matrix2.matrix[i][j] = dist(gen);
+                }
+            }
+            auto start = high_resolution_clock::now();
+            Matrix<double> ans = matrix1.AdditionBlocksFutures(matrix2, blocks);
+            auto stop = high_resolution_clock::now();
 
-    //произведение матрицы и скаляра
-    cout << "The product of the matrix1 and the scalar1:" << endl;
-    cout << (matrix1 * c1) << endl;
-    cout << "The product of the matrix2 and the scalar2:" << endl;
-    cout << (matrix2 * c2) << endl;
-    
-    //сумма двух матриц
-    cout << "The sum of two matrices:" << endl;
-    cout << (matrix1 + matrix2) << endl;
+            auto duration = duration_cast<milliseconds>(stop - start);
+            cout << " Size: " << n << endl << " Addition time: " << duration.count() << " ms\n";
+            blocks += 25;
+        }
+        blocks = 1;
+        for (int n = 0; n <= 2000; n += 50)
+        {
+            Matrix<double> matrix1(n,n), matrix2(n,n);
 
-    //разность двух матриц
-    cout << "The difference of two matrices:" << endl;
-    cout << (matrix1 - matrix2) << endl;
-    /*
-    //сравнение двух матриц
-    cout << "Comparison of two matrices for equality:" << endl;
-    cout << (matrix1 == matrix2) << endl;
-    cout << "Comparison of two matrices for inequality:" << endl;
-    cout << (matrix1 != matrix2) << endl;
+            for (int i = 0; i < n; ++i) {
+                for (int j = 0; j < n; ++j) {
+                    matrix1.matrix[i][j] = dist(gen);
+                }
+            }
 
-    cout << "Enter a scalar to compare with the matrix1:" << endl;
-    double l1;
-    cin >> l1;
-    cout << "Enter a scalar to compare with the matrix2:" << endl;
-    double l2;
-    cin >> l2;
+            for (int i = 0; i < n; ++i) {
+                for (int j = 0; j < n; ++j) {
+                    matrix2.matrix[i][j] = dist(gen);
+                }
+            }
+            auto start = high_resolution_clock::now();
+            Matrix<double> ans = matrix1.SubstractionBlocksFutures(matrix2, blocks);
+            auto stop = high_resolution_clock::now();
 
-    //сравнение матрицы и скаляра
-    cout << "Comparison of the matrix1 and the scalar1 for equality:" << endl;
-    cout << (matrix1 == l1) << endl;
-    cout << "Comparison of the matrix1 and the scalar1 for inequality:" << endl;
-    cout << (matrix1 != l1) << endl;
-    cout << "Comparison of the matrix2 and the scalar2 for equality:" << endl;
-    cout << (matrix2 == l2) << endl;
-    cout << "Comparison of the matrix2 and the scalar2 for inequality:" << endl;
-    cout << (matrix2 != l2) << endl;
+            auto duration = duration_cast<milliseconds>(stop - start);
+            cout << " Size: " << n << " Substraction time: " << duration.count() << " ms\n";
+            blocks += 25;
+        }
+        blocks = 1;
+        for (int n = 0; n <= 2000; n += 50)
+        {
+            Matrix<double> matrix1(n,n);
 
-    //элементарные преобразования над строками матриц
-    cout << "Enter the numbers of lines that you want to swap:" << endl;
-    int i1;
-    cin >> i1;
-    int i2;
-    cin >> i2;
-    cout << "Matrix with swapped lines:" << endl;
-    cout << matrix1.elementr1(i1, i2) << endl;
-    cout << "Enter the number of the line you want to multiply and the number you want to multiply by:" << endl;
-    int in1;
-    cin >> in1;
-    int m1;
-    cin >> m1;
-    cout << "Matrix with a multiplied line:" << endl;
-    cout << matrix1.elementr2(in1, m1) << endl;
-    cout << "Enter the number of the line to which you want to add the number of the line you want to add and the number by which you want to multiply the added line:" << endl;
-    int ind1;
-    cin >> ind1;
-    int ind2;
-    cin >> ind2;
-    int m2;
-    cin >> m2;
-    cout << "Matrix to one of the rows of which another multiplied by a number was added:" << endl;
-    cout << matrix1.elementr3(ind1, ind2, m2) << endl;
-    */
+            for (int i = 0; i < n; ++i) {
+                for (int j = 0; j < n; ++j) {
+                    matrix1.matrix[i][j] = dist(gen);
+                }
+            }
+            auto start = high_resolution_clock::now();
+            Matrix<double> ans = matrix1.ScalarMultiplicationBlocksFutures(6, blocks);
+            auto stop = high_resolution_clock::now();
 
-    //нахождение определителя матрицы
-    cout << "The determinant of the matrix1:" << endl;
-    cout << matrix1.determinant() << endl;
-    cout << "The determinant of the matrix2:" << endl;
-    cout << matrix2.determinant() << endl;
+            auto duration = duration_cast<milliseconds>(stop - start);
+            cout << " Size: " << n << " Scalar multiplication time: " << duration.count() << " ms\n";
+            blocks += 25;
+        }
+        blocks = 1;
+        for (int n = 0; n <= 1500; n += 50)
+        {
+            Matrix<double> matrix1(n,n), matrix2(n,n);
 
-    //нахождение обратной матрицы
+            for (int i = 0; i < n; ++i) {
+                for (int j = 0; j < n; ++j) {
+                    matrix1.matrix[i][j] = dist(gen);
+                }
+            }
 
-    try {
-        cout << !matrix1;
-    }
-    catch (const char* error_message) {
-        cout << error_message << endl;
-    }
+            for (int i = 0; i < n; ++i) {
+                for (int j = 0; j < n; ++j) {
+                    matrix2.matrix[i][j] = dist(gen);
+                }
+            }
+            auto start = high_resolution_clock::now();
+            Matrix<double> ans = matrix1.MultiplicationBlocksFutures(matrix2, blocks);
+            auto stop = high_resolution_clock::now();
 
-    try {
-        cout << !matrix2;
-    }
-    catch (const char* error_message) {
-        cout << error_message << endl;
-    }
+            auto duration = duration_cast<milliseconds>(stop - start);
+            cout << " Size: " << n << " Multiplication time: " << duration.count() << " ms\n";
+            blocks += 25;
+        }
+        blocks = 1;
+        for (int n = 2; n <= 8; n += 2)
+        {
+            Matrix<double> matrix1(n,n);
 
-    /*
-    //перегруженный оператор присваивания
-    matrix1 = matrix2;
-    cout << "New value of matrix1:" << endl;
-    cout << matrix1;
+            for (int i = 0; i < n; ++i) {
+                for (int j = 0; j < n; ++j) {
+                    matrix1.matrix[i][j] = dist(gen);
+                }
+            }
+            auto start = high_resolution_clock::now();
+            Matrix<double> ans = matrix1.InverseMatrixBlocksFututres(blocks);
+            auto stop = high_resolution_clock::now();
 
-    cout << "Zero Matrix:" << endl;
-    cout << Matrix<int>::ZeroMatrix(3, 4);
-    cout << "Identity Matrix:" << endl;
-    cout << Matrix<int>::IdentityMatrix(3, 3);*/
+            auto duration = duration_cast<milliseconds>(stop - start);
+            cout << " Size: " << n << " Inverse matrix calculation time: " << duration.count() << " ms\n";
+            blocks += 1; 
+        }
+        //16.2
+        for (int blocks = 100; blocks <= 1000; blocks += 100)
+        {
+            Matrix<double> matrix1(1000, 1000), matrix2(1000, 1000);
+
+            for (int i = 0; i < 1000; ++i) {
+                for (int j = 0; j < 1000; ++j) {
+                    matrix1.matrix[i][j] = dist(gen);
+                }
+            }
+
+            for (int i = 0; i < 1000; ++i) {
+                for (int j = 0; j < 1000; ++j) {
+                    matrix2.matrix[i][j] = dist(gen);
+                }
+            }
+            auto start = high_resolution_clock::now();
+            Matrix<double> ans = matrix1.AdditionBlocksFutures(matrix1, blocks);
+            auto stop = high_resolution_clock::now();
+
+            auto duration = duration_cast<milliseconds>(stop - start);
+            double threads = (1000 / blocks) * (1000 / blocks);
+            cout << "Number of threads: "<< threads << " Addition time: " << duration.count() << " ms\n";
+            cout << endl;
+        }
+        for (int blocks = 100; blocks <= 1000; blocks += 100)
+        {
+            Matrix<double> matrix1(1000, 1000), matrix2(1000, 1000);
+
+            for (int i = 0; i < 1000; ++i) {
+                for (int j = 0; j < 1000; ++j) {
+                    matrix1.matrix[i][j] = dist(gen);
+                }
+            }
+
+            for (int i = 0; i < 1000; ++i) {
+                for (int j = 0; j < 1000; ++j) {
+                    matrix2.matrix[i][j] = dist(gen);
+                }
+            }
+            auto start = high_resolution_clock::now();
+            Matrix<double> ans = matrix1.SubstractionBlocksFutures(matrix2, blocks);
+            auto stop = high_resolution_clock::now();
+
+            auto duration = duration_cast<milliseconds>(stop - start);
+            double threads = (1000 / blocks) * (1000 / blocks);
+            cout << "Number of threads: " << threads << " Substraction time: " << duration.count() << " ms\n";
+            cout << endl;
+        }
+        for (int blocks = 100; blocks <= 1000; blocks += 100)
+        {
+            Matrix<double> matrix1(1000, 1000);
+
+            for (int i = 0; i < 1000; ++i) {
+                for (int j = 0; j < 1000; ++j) {
+                    matrix1.matrix[i][j] = dist(gen);
+                }
+            }
+            auto start = high_resolution_clock::now();
+            Matrix<double> ans = matrix1.ScalarMultiplicationBlocksFutures(7, blocks);
+            auto stop = high_resolution_clock::now();
+
+            auto duration = duration_cast<milliseconds>(stop - start);
+            double threads = (1000 / blocks) * (1000 / blocks);
+            cout << "Number of threads: " << threads << " Scalar multiplication time: " << duration.count() << " ms\n";
+            cout << endl;
+        }
+        for (int blocks = 100; blocks <= 1000; blocks += 100)
+        {
+            Matrix<double> matrix1(1000, 1000), matrix2(1000, 1000);
+
+            for (int i = 0; i < 1000; ++i) {
+                for (int j = 0; j < 1000; ++j) {
+                    matrix1.matrix[i][j] = dist(gen);
+                }
+            }
+
+            for (int i = 0; i < 1000; ++i) {
+                for (int j = 0; j < 1000; ++j) {
+                    matrix2.matrix[i][j] = dist(gen);
+                }
+            }
+            auto start = high_resolution_clock::now();
+            Matrix<double> ans = matrix1.MultiplicationBlocksFutures(matrix2, blocks);
+            auto stop = high_resolution_clock::now();
+
+            auto duration = duration_cast<milliseconds>(stop - start);
+            double threads = (1000 / blocks) * (1000 / blocks);
+            cout << "Number of threads: " << threads << " Multiplication time: " << duration.count() << " ms\n";
+            cout << endl;
+        }
+        for (int blocks = 2; blocks <= 6; blocks += 1)
+        {
+            Matrix<double> matrix1(6, 6);
+
+            for (int i = 0; i < 6; ++i) {
+                for (int j = 0; j < 6; ++j) {
+                    matrix1.matrix[i][j] = dist(gen);
+                }
+            }
+            auto start = chrono::high_resolution_clock::now();
+            Matrix<double> ans = matrix1.InverseMatrixBlocksFututres(blocks);
+            auto stop = chrono::high_resolution_clock::now();
+
+            auto duration = chrono::duration_cast<milliseconds>(stop - start);
+            double threads = (6 / blocks) * (6 / blocks);
+            cout << "Number of threads: " << threads << " Inverse matrix calculation time: " << duration.count() << " ms\n";
+            cout << endl;
+        }
     return 0;
 }
