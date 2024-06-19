@@ -1,4 +1,4 @@
-#include <iostream>
+п»ї#include <iostream>
 #include <fstream>
 #include <thread>
 #include <vector>
@@ -17,13 +17,13 @@ public:
     int lines;
     T** matrix;
 
-    void EmptyMatrix() {//создание пустой матрицы
+    void EmptyMatrix() {//СЃРѕР·РґР°РЅРёРµ РїСѓСЃС‚РѕР№ РјР°С‚СЂРёС†С‹
         matrix = new T * [lines];
         for (int i = 0; i < lines; i++)
             matrix[i] = new T[columns];
     }
 
-    void FilledMatrix(istream& in) {//заполнение матрицы
+    void FilledMatrix(istream& in) {//Р·Р°РїРѕР»РЅРµРЅРёРµ РјР°С‚СЂРёС†С‹
         for (int i = 0; i < lines; i++) {
             for (int j = 0; j < columns; j++) {
                 in >> matrix[i][j];
@@ -31,7 +31,7 @@ public:
         }
     }
 
-    Matrix() {//конструктор по умолчанию (без параметров)
+    Matrix() {//РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ (Р±РµР· РїР°СЂР°РјРµС‚СЂРѕРІ)
         lines = 0;
         columns = 0;
         matrix = nullptr;
@@ -50,7 +50,7 @@ public:
         FilledMatrix(cin);
     }
 
-    Matrix(const char* file_name)//считывание из файла
+    Matrix(const char* file_name)//СЃС‡РёС‚С‹РІР°РЅРёРµ РёР· С„Р°Р№Р»Р°
     {
         ifstream file(file_name);
         file >> lines >> columns;
@@ -59,7 +59,7 @@ public:
         file.close();
     }
 
-    Matrix(const Matrix& other) {//конструктор копирования
+    Matrix(const Matrix& other) {//РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ РєРѕРїРёСЂРѕРІР°РЅРёСЏ
         lines = other.lines;
         columns = other.columns;
         matrix = new T * [lines];
@@ -71,14 +71,14 @@ public:
         }
     }
 
-    ~Matrix() {//деструктор
+    ~Matrix() {//РґРµСЃС‚СЂСѓРєС‚РѕСЂ
         for (int i = 0; i < lines; i++) {
             delete[] matrix[i];
         }
         delete matrix;
     };
 
-    Matrix operator * (Matrix& other) const { //перегрузка * для матриц
+    Matrix operator * (Matrix& other) const { //РїРµСЂРµРіСЂСѓР·РєР° * РґР»СЏ РјР°С‚СЂРёС†
 
         if (columns != other.lines)
         {
@@ -132,7 +132,7 @@ public:
         return result;
     }
 
-    Matrix operator * (T& c) const { //перегрузка * для матрицы и скаляра
+    Matrix operator * (T& c) const { //РїРµСЂРµРіСЂСѓР·РєР° * РґР»СЏ РјР°С‚СЂРёС†С‹ Рё СЃРєР°Р»СЏСЂР°
 
         Matrix result(lines, columns, true);
         vector<thread> threads;
@@ -170,7 +170,7 @@ public:
         return result;
     }
 
-    Matrix operator + (const Matrix& other) { //перегрузка +
+    Matrix operator + (const Matrix& other) { //РїРµСЂРµРіСЂСѓР·РєР° +
 
         if (lines != other.lines || columns != other.columns)
         {
@@ -201,9 +201,9 @@ public:
         }
         vector<future<void>> futures;
         Matrix result(lines, columns, true);
-        for (int i = 0; i < lines; i += blocks) { // Внешний цикл по i и внутренний цикл по j делят матрицы на блоки
+        for (int i = 0; i < lines; i += blocks) { // Р’РЅРµС€РЅРёР№ С†РёРєР» РїРѕ i Рё РІРЅСѓС‚СЂРµРЅРЅРёР№ С†РёРєР» РїРѕ j РґРµР»СЏС‚ РјР°С‚СЂРёС†С‹ РЅР° Р±Р»РѕРєРё
             for (int j = 0; j < columns; j += blocks) {
-                futures.push_back(async(launch::async, [&, i, j]() { //Внутри каждого блока запускается асинхронная задача 
+                futures.push_back(async(launch::async, [&, i, j]() { //Р’РЅСѓС‚СЂРё РєР°Р¶РґРѕРіРѕ Р±Р»РѕРєР° Р·Р°РїСѓСЃРєР°РµС‚СЃСЏ Р°СЃРёРЅС…СЂРѕРЅРЅР°СЏ Р·Р°РґР°С‡Р° 
                         for (int ii = i; ii < min(i + blocks, lines); ii++) {
                             for (int jj = j; jj < min(j + blocks, columns); jj++) {
                                 result.matrix[ii][jj] = matrix[ii][jj] + other.matrix[ii][jj];
@@ -213,15 +213,15 @@ public:
             }
         }
 
-        /*После создания потоков в цикле ожидания основной поток дожидается завершения всех потоков.
-        Функция future.get() используется для получения результатов вычислений из потоков.*/
+        /*РџРѕСЃР»Рµ СЃРѕР·РґР°РЅРёСЏ РїРѕС‚РѕРєРѕРІ РІ С†РёРєР»Рµ РѕР¶РёРґР°РЅРёСЏ РѕСЃРЅРѕРІРЅРѕР№ РїРѕС‚РѕРє РґРѕР¶РёРґР°РµС‚СЃСЏ Р·Р°РІРµСЂС€РµРЅРёСЏ РІСЃРµС… РїРѕС‚РѕРєРѕРІ.
+        Р¤СѓРЅРєС†РёСЏ future.get() РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ РІС‹С‡РёСЃР»РµРЅРёР№ РёР· РїРѕС‚РѕРєРѕРІ.*/
         for (auto& future : futures) {
             future.get();
         }
         return result;
     }
 
-    Matrix operator - (const Matrix& other) { //перегрузка -
+    Matrix operator - (const Matrix& other) { //РїРµСЂРµРіСЂСѓР·РєР° -
 
         if (lines != other.lines || lines != other.lines)
         {
@@ -269,7 +269,7 @@ public:
         return result;
     }
 
-    bool operator == (const Matrix& other) { //перегрузка == сравнение двух матриц
+    bool operator == (const Matrix& other) { //РїРµСЂРµРіСЂСѓР·РєР° == СЃСЂР°РІРЅРµРЅРёРµ РґРІСѓС… РјР°С‚СЂРёС†
 
         if (lines != other.lines || columns != other.columns) {
             return false;
@@ -284,7 +284,7 @@ public:
         return true;
     }
 
-    bool operator == (double c) { //перегрузка == сравнение матрицы со скаляром 
+    bool operator == (double c) { //РїРµСЂРµРіСЂСѓР·РєР° == СЃСЂР°РІРЅРµРЅРёРµ РјР°С‚СЂРёС†С‹ СЃРѕ СЃРєР°Р»СЏСЂРѕРј 
         if (lines != columns) {
             return false;
         }
@@ -304,7 +304,7 @@ public:
 
     }
 
-    bool operator != (const Matrix& other) { //перегрузка оператора !=
+    bool operator != (const Matrix& other) { //РїРµСЂРµРіСЂСѓР·РєР° РѕРїРµСЂР°С‚РѕСЂР° !=
 
         return !(*this == other);
     }
@@ -314,7 +314,7 @@ public:
         return !(*this == c);
     }
 
-    Matrix operator = (const Matrix& other) { //перегрузка =
+    Matrix operator = (const Matrix& other) { //РїРµСЂРµРіСЂСѓР·РєР° =
         if (this == &other) {
             return *this;
         }
@@ -336,7 +336,7 @@ public:
         return *this;
     }
 
-    Matrix elementr1(int index1, int index2) { //элементарное преобразование над строками первого типа
+    Matrix elementr1(int index1, int index2) { //СЌР»РµРјРµРЅС‚Р°СЂРЅРѕРµ РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРµ РЅР°Рґ СЃС‚СЂРѕРєР°РјРё РїРµСЂРІРѕРіРѕ С‚РёРїР°
 
         Matrix result(*this);
         if (index1 > lines || index2 > lines) {
@@ -353,7 +353,7 @@ public:
         }
     }
 
-    Matrix elementr2(int index, double c) {//элементарное преобразование над строками второго типа
+    Matrix elementr2(int index, double c) {//СЌР»РµРјРµРЅС‚Р°СЂРЅРѕРµ РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРµ РЅР°Рґ СЃС‚СЂРѕРєР°РјРё РІС‚РѕСЂРѕРіРѕ С‚РёРїР°
 
         Matrix result(*this);
         if (index > lines) {
@@ -370,7 +370,7 @@ public:
 
     }
 
-    Matrix elementr3(int index1, int index2, double c) {//элементарное преобразование над строками третьего типа
+    Matrix elementr3(int index1, int index2, double c) {//СЌР»РµРјРµРЅС‚Р°СЂРЅРѕРµ РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРµ РЅР°Рґ СЃС‚СЂРѕРєР°РјРё С‚СЂРµС‚СЊРµРіРѕ С‚РёРїР°
 
         Matrix result(*this);
         if (index1 > lines || index2 > lines) {
@@ -388,7 +388,7 @@ public:
 
     }
 
-    double determinant() {//нахождение определителя
+    double determinant() {//РЅР°С…РѕР¶РґРµРЅРёРµ РѕРїСЂРµРґРµР»РёС‚РµР»СЏ
         if (lines != columns) {
             cout << "Unable to calculate determinant" << endl;
             return 0;
@@ -450,7 +450,7 @@ public:
                             }
                         }
                     }
-                    blocksdet += pow(-1, jj) * matrix[0][jj] * minor.DeterminantBlocksFutures(blocks); //Каждая задача вычисляет определитель для своего блока и добавляет результат в block_det.
+                    blocksdet += pow(-1, jj) * matrix[0][jj] * minor.DeterminantBlocksFutures(blocks); //РљР°Р¶РґР°СЏ Р·Р°РґР°С‡Р° РІС‹С‡РёСЃР»СЏРµС‚ РѕРїСЂРµРґРµР»РёС‚РµР»СЊ РґР»СЏ СЃРІРѕРµРіРѕ Р±Р»РѕРєР° Рё РґРѕР±Р°РІР»СЏРµС‚ СЂРµР·СѓР»СЊС‚Р°С‚ РІ block_det.
                 }
                 return blocksdet;
                 }));
@@ -586,7 +586,7 @@ public:
         return result;
     }
 
-    Matrix transposition() {//транспонированиe матрицы
+    Matrix transposition() {//С‚СЂР°РЅСЃРїРѕРЅРёСЂРѕРІР°РЅРёe РјР°С‚СЂРёС†С‹
         Matrix result(columns, lines, true);
         vector<thread> threads;
         for (int i = 0; i < columns; ++i) {
@@ -622,7 +622,7 @@ public:
         return result;
     }
 
-    Matrix operator !() {//перегрузка оператра ! для вычисления обраной матрицы
+    Matrix operator !() {//РїРµСЂРµРіСЂСѓР·РєР° РѕРїРµСЂР°С‚СЂР° ! РґР»СЏ РІС‹С‡РёСЃР»РµРЅРёСЏ РѕР±СЂР°РЅРѕР№ РјР°С‚СЂРёС†С‹
         Matrix tmp(lines, columns, true);
         for (int i = 0; i < lines; i++) {
             for (int j = 0; j < lines; j++) {
@@ -671,7 +671,7 @@ public:
         }
     }
 
-    friend ostream& operator << (ostream& out, const Matrix& object) {//вывод матрицы
+    friend ostream& operator << (ostream& out, const Matrix& object) {//РІС‹РІРѕРґ РјР°С‚СЂРёС†С‹
         for (int i = 0; i < object.lines; i++) {
             for (int j = 0; j < object.columns; j++)
                 out << object.matrix[i][j] << " ";
@@ -680,7 +680,7 @@ public:
         return out;
     }
 
-    static Matrix ZeroMatrix(int lines, int columns) {//статическая функция для создания нулевой матрицы
+    static Matrix ZeroMatrix(int lines, int columns) {//СЃС‚Р°С‚РёС‡РµСЃРєР°СЏ С„СѓРЅРєС†РёСЏ РґР»СЏ СЃРѕР·РґР°РЅРёСЏ РЅСѓР»РµРІРѕР№ РјР°С‚СЂРёС†С‹
         Matrix<T> M(lines, columns, true);
         for (int i = 0; i < lines; i++) {
             for (int j = 0; j < columns; j++) {
@@ -690,7 +690,7 @@ public:
         return M;
     }
 
-    static Matrix IdentityMatrix(int lines, int columns) {//статическая функция для создания единичной матрицы
+    static Matrix IdentityMatrix(int lines, int columns) {//СЃС‚Р°С‚РёС‡РµСЃРєР°СЏ С„СѓРЅРєС†РёСЏ РґР»СЏ СЃРѕР·РґР°РЅРёСЏ РµРґРёРЅРёС‡РЅРѕР№ РјР°С‚СЂРёС†С‹
         if (lines == columns) {
             Matrix<T> M(lines, columns, true);
             for (int i = 0; i < lines; i++) {
@@ -717,8 +717,8 @@ int main() {
     mt19937 gen(rd());
     uniform_int_distribution<int> dist(0, 100);
     //16.1
-    int blocks = 1;
-        for (int n = 0; n <= 2000; n += 50)
+    int blocks = 0;
+        /*for (int n = 0; n <= 2000; n += 50)
         {
             Matrix<double> matrix1(n,n), matrix2(n,n);
 
@@ -739,9 +739,10 @@ int main() {
 
             auto duration = duration_cast<milliseconds>(stop - start);
             cout << " Size: " << n << endl << " Addition time: " << duration.count() << " ms\n";
+            //cout << duration.count() << endl;
             blocks += 25;
-        }
-        blocks = 1;
+        }*/
+        /*blocks = 1;
         for (int n = 0; n <= 2000; n += 50)
         {
             Matrix<double> matrix1(n,n), matrix2(n,n);
@@ -763,9 +764,10 @@ int main() {
 
             auto duration = duration_cast<milliseconds>(stop - start);
             cout << " Size: " << n << " Substraction time: " << duration.count() << " ms\n";
+            //cout << duration.count() << endl;
             blocks += 25;
-        }
-        blocks = 1;
+        }*/
+        /*blocks = 1;
         for (int n = 0; n <= 2000; n += 50)
         {
             Matrix<double> matrix1(n,n);
@@ -781,9 +783,10 @@ int main() {
 
             auto duration = duration_cast<milliseconds>(stop - start);
             cout << " Size: " << n << " Scalar multiplication time: " << duration.count() << " ms\n";
+            //cout << duration.count() << endl;
             blocks += 25;
-        }
-        blocks = 1;
+        }*/
+        /*blocks = 1;
         for (int n = 0; n <= 1500; n += 50)
         {
             Matrix<double> matrix1(n,n), matrix2(n,n);
@@ -805,10 +808,11 @@ int main() {
 
             auto duration = duration_cast<milliseconds>(stop - start);
             cout << " Size: " << n << " Multiplication time: " << duration.count() << " ms\n";
+            //cout << duration.count() << endl;
             blocks += 25;
-        }
-        blocks = 1;
-        for (int n = 2; n <= 8; n += 2)
+        }*/
+        /*blocks = 1;
+        for (int n = 2; n <= 10; n += 2)
         {
             Matrix<double> matrix1(n,n);
 
@@ -823,116 +827,63 @@ int main() {
 
             auto duration = duration_cast<milliseconds>(stop - start);
             cout << " Size: " << n << " Inverse matrix calculation time: " << duration.count() << " ms\n";
+            //cout << duration.count() << endl;
             blocks += 1; 
-        }
+        }*/
+
         //16.2
-        for (int blocks = 100; blocks <= 1000; blocks += 100)
+
+        int n = 1000;
+        Matrix<double> matrix1(n,n);
+        for (int i = 0; i < n; ++i)
         {
-            Matrix<double> matrix1(1000, 1000), matrix2(1000, 1000);
-
-            for (int i = 0; i < 1000; ++i) {
-                for (int j = 0; j < 1000; ++j) {
-                    matrix1.matrix[i][j] = dist(gen);
-                }
-            }
-
-            for (int i = 0; i < 1000; ++i) {
-                for (int j = 0; j < 1000; ++j) {
-                    matrix2.matrix[i][j] = dist(gen);
-                }
-            }
-            auto start = high_resolution_clock::now();
-            Matrix<double> ans = matrix1.AdditionBlocksFutures(matrix1, blocks);
-            auto stop = high_resolution_clock::now();
-
-            auto duration = duration_cast<milliseconds>(stop - start);
-            double threads = (1000 / blocks) * (1000 / blocks);
-            cout << "Number of threads: "<< threads << " Addition time: " << duration.count() << " ms\n";
-            cout << endl;
+            for (int j = 0; j < n; ++j)
+                matrix1.matrix[i][j] = dist(gen);
         }
-        for (int blocks = 100; blocks <= 1000; blocks += 100)
+        Matrix<double> matrix2(n,n);
+        for (int i = 0; i < n; ++i)
         {
-            Matrix<double> matrix1(1000, 1000), matrix2(1000, 1000);
-
-            for (int i = 0; i < 1000; ++i) {
-                for (int j = 0; j < 1000; ++j) {
-                    matrix1.matrix[i][j] = dist(gen);
-                }
-            }
-
-            for (int i = 0; i < 1000; ++i) {
-                for (int j = 0; j < 1000; ++j) {
-                    matrix2.matrix[i][j] = dist(gen);
-                }
-            }
-            auto start = high_resolution_clock::now();
-            Matrix<double> ans = matrix1.SubstractionBlocksFutures(matrix2, blocks);
-            auto stop = high_resolution_clock::now();
-
-            auto duration = duration_cast<milliseconds>(stop - start);
-            double threads = (1000 / blocks) * (1000 / blocks);
-            cout << "Number of threads: " << threads << " Substraction time: " << duration.count() << " ms\n";
-            cout << endl;
+            for (int j = 0; j < n; ++j)
+                matrix2.matrix[i][j] = dist(gen);
         }
-        for (int blocks = 100; blocks <= 1000; blocks += 100)
-        {
-            Matrix<double> matrix1(1000, 1000);
 
-            for (int i = 0; i < 1000; ++i) {
-                for (int j = 0; j < 1000; ++j) {
-                    matrix1.matrix[i][j] = dist(gen);
-                }
-            }
-            auto start = high_resolution_clock::now();
-            Matrix<double> ans = matrix1.ScalarMultiplicationBlocksFutures(7, blocks);
-            auto stop = high_resolution_clock::now();
+        for (int t = 1; t <= 4; ++t) {
+            blocks = n / t;
+            auto start1 = high_resolution_clock::now();
+            Matrix<double> ans1 = matrix1.AdditionBlocksFutures(matrix2, blocks);
+            auto stop1 = high_resolution_clock::now();
+            auto duration1 = duration_cast<milliseconds>(stop1 - start1);
 
-            auto duration = duration_cast<milliseconds>(stop - start);
-            double threads = (1000 / blocks) * (1000 / blocks);
-            cout << "Number of threads: " << threads << " Scalar multiplication time: " << duration.count() << " ms\n";
-            cout << endl;
+            cout << "Matrix size: " << n << "x" << n << "   Number of treads: " << t << " " << "Addition time: " << duration1.count() << endl;
+
+            auto start2 = high_resolution_clock::now();
+            Matrix<double> ans2 = matrix1.MultiplicationBlocksFutures(matrix2, blocks);
+            auto stop2 = high_resolution_clock::now();
+            auto duration2 = duration_cast<milliseconds>(stop2 - start2);
+            
+            cout << "Matrix size: " << n << "x" << n << "   Number of treads: " << t << " " << "Multiplication time: " << duration2.count() << endl;
+
+            auto start3 = high_resolution_clock::now();
+            Matrix<double> ans3 = matrix1.SubstractionBlocksFutures(matrix2, blocks);
+            auto stop3 = high_resolution_clock::now();
+            auto duration3 = duration_cast<milliseconds>(stop3 - start3);
+
+            cout << "Matrix size: " << n << "x" << n << "   Number of treads: " << t << " " << "Substraction time: " << duration3.count() << endl;
+
+            double c = 9;
+            auto start4 = high_resolution_clock::now();
+            Matrix<double> ans4 = matrix1.ScalarMultiplicationBlocksFutures(c, blocks);
+            auto stop4 = high_resolution_clock::now();
+            auto duration4 = duration_cast<milliseconds>(stop4 - start4);
+
+            cout << "Matrix size: " << n << "x" << n << "   Number of treads: " << t << " " << "Scalar Multiplication time: " << duration4.count() << endl;
+
+            auto start5 = high_resolution_clock::now();
+            Matrix<double> ans5 = matrix1.SubstractionBlocksFutures(matrix2, blocks);
+            auto stop5 = high_resolution_clock::now();
+            auto duration5 = duration_cast<milliseconds>(stop5 - start5);
+
+            cout << "Matrix size: " << n << "x" << n << "   Number of treads: " << t << " " << "Inverse matrix time: " << duration5.count() << endl;
         }
-        for (int blocks = 100; blocks <= 1000; blocks += 100)
-        {
-            Matrix<double> matrix1(1000, 1000), matrix2(1000, 1000);
-
-            for (int i = 0; i < 1000; ++i) {
-                for (int j = 0; j < 1000; ++j) {
-                    matrix1.matrix[i][j] = dist(gen);
-                }
-            }
-
-            for (int i = 0; i < 1000; ++i) {
-                for (int j = 0; j < 1000; ++j) {
-                    matrix2.matrix[i][j] = dist(gen);
-                }
-            }
-            auto start = high_resolution_clock::now();
-            Matrix<double> ans = matrix1.MultiplicationBlocksFutures(matrix2, blocks);
-            auto stop = high_resolution_clock::now();
-
-            auto duration = duration_cast<milliseconds>(stop - start);
-            double threads = (1000 / blocks) * (1000 / blocks);
-            cout << "Number of threads: " << threads << " Multiplication time: " << duration.count() << " ms\n";
-            cout << endl;
-        }
-        for (int blocks = 2; blocks <= 6; blocks += 1)
-        {
-            Matrix<double> matrix1(6, 6);
-
-            for (int i = 0; i < 6; ++i) {
-                for (int j = 0; j < 6; ++j) {
-                    matrix1.matrix[i][j] = dist(gen);
-                }
-            }
-            auto start = chrono::high_resolution_clock::now();
-            Matrix<double> ans = matrix1.InverseMatrixBlocksFututres(blocks);
-            auto stop = chrono::high_resolution_clock::now();
-
-            auto duration = chrono::duration_cast<milliseconds>(stop - start);
-            double threads = (6 / blocks) * (6 / blocks);
-            cout << "Number of threads: " << threads << " Inverse matrix calculation time: " << duration.count() << " ms\n";
-            cout << endl;
-        }
-    return 0;
+        return 0;
 }
