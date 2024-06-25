@@ -718,7 +718,7 @@ int main() {
     uniform_int_distribution<int> dist(0, 100);
     //16.1
     int blocks = 0;
-        /*for (int n = 0; n <= 2000; n += 50)
+        for (int n = 0; n <= 2000; n += 50)
         {
             Matrix<double> matrix1(n,n), matrix2(n,n);
 
@@ -741,8 +741,8 @@ int main() {
             cout << " Size: " << n << endl << " Addition time: " << duration.count() << " ms\n";
             //cout << duration.count() << endl;
             blocks += 25;
-        }*/
-        /*blocks = 1;
+        }
+        blocks = 1;
         for (int n = 0; n <= 2000; n += 50)
         {
             Matrix<double> matrix1(n,n), matrix2(n,n);
@@ -766,8 +766,8 @@ int main() {
             cout << " Size: " << n << " Substraction time: " << duration.count() << " ms\n";
             //cout << duration.count() << endl;
             blocks += 25;
-        }*/
-        /*blocks = 1;
+        }
+        blocks = 1;
         for (int n = 0; n <= 2000; n += 50)
         {
             Matrix<double> matrix1(n,n);
@@ -785,8 +785,8 @@ int main() {
             cout << " Size: " << n << " Scalar multiplication time: " << duration.count() << " ms\n";
             //cout << duration.count() << endl;
             blocks += 25;
-        }*/
-        /*blocks = 1;
+        }
+        blocks = 1;
         for (int n = 0; n <= 1500; n += 50)
         {
             Matrix<double> matrix1(n,n), matrix2(n,n);
@@ -810,8 +810,8 @@ int main() {
             cout << " Size: " << n << " Multiplication time: " << duration.count() << " ms\n";
             //cout << duration.count() << endl;
             blocks += 25;
-        }*/
-        /*blocks = 1;
+        }
+        blocks = 1;
         for (int n = 2; n <= 10; n += 2)
         {
             Matrix<double> matrix1(n,n);
@@ -829,11 +829,13 @@ int main() {
             cout << " Size: " << n << " Inverse matrix calculation time: " << duration.count() << " ms\n";
             //cout << duration.count() << endl;
             blocks += 1; 
-        }*/
+        }
 
         //16.2
 
+
         int n = 1000;
+        blocks = 0;
         Matrix<double> matrix1(n,n);
         for (int i = 0; i < n; ++i)
         {
